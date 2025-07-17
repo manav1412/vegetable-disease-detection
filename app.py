@@ -91,6 +91,7 @@ async def predict_image(file: UploadFile = File(...)):
         }
 
     except Exception as e:
+        print("Exception error:",str(e))
         return {
             "message": "Invalid Image format",
             "status": 422
