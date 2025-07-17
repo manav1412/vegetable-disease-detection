@@ -12,7 +12,7 @@ def transliterate_aksharamukha(text, target_script):
     return response.text if response.ok else "Error"
 
 # Examples:
-# print("Hindi (Devanagari):", transliterate_aksharamukha("Tomato-anthracnose", "Devanagari"))
+# print("Hindi (Devanagari):", transliterate_aksharamukha("Tomato-anthracnose", "English"))
 # print("Gujarati:", transliterate_aksharamukha("Tomato-anthracnose", "Gujarati"))
 
 # print("Hindi (Devanagari):", transliterate_aksharamukha("Tomato-early blight", "Devanagari"))

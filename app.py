@@ -45,7 +45,7 @@ MESSAGES = {
 #     print(version['ProjectVersionArn'], version['Status'])
 
 
-@app.post("/predict/{language}/")
+@app.post("/predict/{language}")
 async def predict_image(
     language: str = Path(..., regex="^(English|Devanagari|Gujarati)$"),
     file: UploadFile = File(...)
@@ -151,4 +151,6 @@ async def predict_image_without_lang(
 
 @app.get("/test")
 def test_api():
-    return {"message":"Hello world"}
+    return {
+        "message":"Hello world"
+        }
