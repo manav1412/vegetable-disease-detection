@@ -1,0 +1,50 @@
+import requests
+
+def transliterate_aksharamukha(text, target_script):
+    url = "https://aksharamukha.appspot.com/api/public"
+    params = {
+        "source": "ISO",       # ISO = English letters
+        "target": target_script,  # e.g., "Gujarati", "Devanagari"
+        "text": text
+    }
+
+    response = requests.get(url, params=params)
+    return response.text if response.ok else "Error"
+
+# Examples:
+# print("Hindi (Devanagari):", transliterate_aksharamukha("Tomato-anthracnose", "Devanagari"))
+# print("Gujarati:", transliterate_aksharamukha("Tomato-anthracnose", "Gujarati"))
+
+# print("Hindi (Devanagari):", transliterate_aksharamukha("Tomato-early blight", "Devanagari"))
+# print("Gujarati:", transliterate_aksharamukha("Tomato-early blight", "Gujarati"))
+
+# print("Hindi (Devanagari):", transliterate_aksharamukha("Tomato-Powdery mildew", "Devanagari"))
+# print("Gujarati:", transliterate_aksharamukha("Tomato-Powdery mildew", "Gujarati"))
+
+
+
+
+
+
+
+
+# from deep_translator import GoogleTranslator
+
+# def change_langauge(text, language):
+#     new_text = ""
+
+#     if language == "hindi":
+#         new_text = GoogleTranslator(source='en', target='hi').translate(text)   # Hindi
+#     elif language == "gujrati":
+#         new_text = GoogleTranslator(source='en', target='gu').translate(text)   # Gujarati
+#     elif language == "english":
+#         return text
+#     else:
+#         return "Language is invalid"
+
+#     print("Transliteration:", new_text)
+#     return new_text
+
+
+# result = change_langauge("Tomato-powdery mildew", "hindi")
+# print(result)

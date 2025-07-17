@@ -3,6 +3,8 @@ from fastapi import FastAPI, File, UploadFile, Path
 from dotenv import load_dotenv
 import boto3
 
+from util.language_conversion import transliterate_aksharamukha
+
 load_dotenv()
 
 app = FastAPI()
@@ -15,51 +17,43 @@ rekognition = boto3.client('rekognition',
 
 MODEL_ARN = os.getenv("MODEL_ARN")
 
-# Multilingual messages
 MESSAGES = {
     "unsupported_format": {
-        "english": "Unsupported file format. Please upload a JPG or PNG image.",
-        "hindi": "असमर्थित फ़ाइल प्रारूप। कृपया JPG या PNG छवि अपलोड करें।",
-        "gujrati": "અસમર્થિત ફાઇલ ફોર્મેટ. કૃપા કરીને JPG અથવા PNG છબી અપલોડ કરો.",
-        "marathi": "असमर्थित फाईल फॉरमॅट. कृपया JPG किंवा PNG इमेज अपलोड करा."
+        "English": "Unsupported file format. Please upload a JPG or PNG image.",
+        "Devanagari": "असमर्थित फ़ाइल प्रारूप। कृपया JPG या PNG फोटो अपलोड करें।",
+        "Gujarati": "અસમર્થિત ફાઇલ ફોર્મેટ. કૃપા કરીને JPG અથવા PNG છબી અપલોડ કરો."
     },
     "no_disease": {
-        "english": "No disease detected. Please upload a clearer vegetable image.",
-        "hindi": "कोई बीमारी नहीं पाई गई। कृपया एक स्पष्ट सब्ज़ी की छवि अपलोड करें।",
-        "gujrati": "કોઈ રોગ મળ્યો નથી. કૃપા કરીને વધુ સ્પષ્ટ શાકભાજીની છબી અપલોડ કરો.",
-        "marathi": "कोणताही आजार आढळला नाही. कृपया अधिक स्पष्ट भाजीपाला प्रतिमा अपलोड करा."
-    },
-    "low_confidence": {
-        "english": "All detected labels have low confidence. Please try again.",
-        "hindi": "सभी पाए गए लेबल में आत्मविश्वास कम है। कृपया पुनः प्रयास करें।",
-        "gujrati": "બધા શોધાયેલા લેબલ્સમાં નબળું વિશ્વાસ છે. કૃપા કરીને ફરી પ્રયાસ કરો.",
-        "marathi": "सर्व सापडलेल्या लेबल्समध्ये कमी खात्री आहे. कृपया पुन्हा प्रयत्न करा."
+        "English": "No disease detected. Please upload a clearer vegetable image.",
+        "Devanagari": "कोई बीमारी नहीं पाई गई। कृपया एक स्पष्ट सब्ज़ी की छवि अपलोड करें।",
+        "Gujarati": "કોઈ રોગ મળ્યો નથી. કૃપા કરીને વધુ સ્પષ્ટ શાકભાજીની છબી અપલોડ કરો."
     },
     "success": {
-        "english": "Disease(s) classified successfully",
-        "hindi": "बीमारी(यों) को सफलतापूर्वक वर्गीकृत किया गया",
-        "gujrati": "રોગ(ઓ)ની સફળતાપૂર્વક વર્ગીકરણ થયું છે",
-        "marathi": "आजारांचे यशस्वी वर्गीकरण झाले आहे"
+        "English": "Disease(s) classified successfully",
+        "Devanagari": "बीमारी(यों) को सफलतापूर्वक वर्गीकृत किया गया",
+        "Gujarati": "રોગ(ઓ)ની સફળતાપૂર્વક વર્ગીકરણ થયું છે",
     },
     "invalid_image": {
-        "english": "Invalid Image format",
-        "hindi": "अमान्य छवि प्रारूप",
-        "gujrati": "અમાન્ય છબી ફોર્મેટ",
-        "marathi": "अवैध प्रतिमा स्वरूप"
+        "English": "Invalid Image format",
+        "Devanagari": "अमान्य फोटो प्रारूप",
+        "Gujarati": "અમાન્ય ફોટો ફોર્મેટ",
     }
 }
 
+# response = rekognition.describe_project_versions(ProjectArn="arn:aws:rekognition:ap-south-1:070290473916:project/vegetable-disease-detection/1752564867963")
+# for version in response['ProjectVersionDescriptions']:
+#     print(version['ProjectVersionArn'], version['Status'])
+
+
 @app.post("/predict/{language}/")
 async def predict_image(
-    language: str = Path(..., regex="^(english|hindi|gujrati|marathi)$"),
+    language: str = Path(..., regex="^(English|Devanagari|Gujarati)$"),
     file: UploadFile = File(...)
 ):
     try:
-        lang = language.lower()
-
         if not file.filename.lower().endswith((".jpg", ".jpeg", ".png")):
             return {
-                "message": MESSAGES["unsupported_format"][lang],
+                "message": MESSAGES["unsupported_format"][language],
                 "status": 415
             }
 
@@ -77,23 +71,20 @@ async def predict_image(
 
         if not final_response:
             return {
-                "message": MESSAGES["no_disease"][lang],
+                "message": MESSAGES["no_disease"][language],
                 "status": 404
             }
 
         valid_labels = [
-            {"label": label["Name"], "confidence": label["Confidence"]}
-            for label in final_response if label["Confidence"] >= 80
+            {
+                "label": transliterate_aksharamukha(label["Name"],language), 
+                "confidence": label["Confidence"]
+            }
+            for label in final_response
         ]
 
-        if not valid_labels:
-            return {
-                "message": MESSAGES["low_confidence"][lang],
-                "status": 404
-            }
-
         return {
-            "message": MESSAGES["success"][lang],
+            "message": MESSAGES["success"][language],
             "status": 200,
             "data": valid_labels
         }
@@ -104,3 +95,60 @@ async def predict_image(
             "message": MESSAGES["invalid_image"].get(language.lower(), "Invalid Image format"),
             "status": 422
         }
+
+
+
+@app.post("/predict/")
+async def predict_image_without_lang(
+    file: UploadFile = File(...)
+):
+    try:
+        if not file.filename.lower().endswith((".jpg", ".jpeg", ".png")):
+            return {
+                "message": "Unsupported file format. Please upload a JPG or PNG image.",
+                "status": 415
+            }
+
+        image_bytes = await file.read()
+        print("Received image of size:", len(image_bytes))
+
+        response = rekognition.detect_custom_labels(
+            ProjectVersionArn=MODEL_ARN,
+            Image={'Bytes': image_bytes}
+        )
+
+        print("response:", response)
+
+        final_response = response.get("CustomLabels", [])
+
+        if not final_response:
+            return {
+                "message": "No disease detected. Please upload a clearer vegetable image.",
+                "status": 404
+            }
+
+        valid_labels = [
+            {
+                "label": label["Name"], 
+                "confidence": label["Confidence"]
+            }
+            for label in final_response
+        ]
+
+        return {
+            "message": "Disease(s) classified successfully",
+            "status": 200,
+            "data": valid_labels
+        }
+
+    except Exception as e:
+        print("Exception error:", str(e))
+        return {
+            "message": "Invalid Image format",
+            "status": 422
+        }
+    
+
+@app.get("/test")
+def test_api():
+    return {"message":"Hello world"}
