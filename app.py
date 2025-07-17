@@ -51,7 +51,8 @@ async def predict_image(file: UploadFile = File(...)):
     try:
         if not file.filename.lower().endswith((".jpg", ".jpeg", ".png")):
             return {
-                "message": "Unsupported file format. Please upload a JPG or PNG image."
+                "message": "Unsupported file format. Please upload a JPG or PNG image.",
+                "status":415
                 }
 
         image_bytes = await file.read()
@@ -90,4 +91,7 @@ async def predict_image(file: UploadFile = File(...)):
         }
 
     except Exception as e:
-        return {"error": str(e)}
+        return {
+            "message": str(e),
+            "status": 400
+            }
