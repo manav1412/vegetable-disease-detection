@@ -3,7 +3,7 @@ from fastapi import FastAPI, File, UploadFile, Path
 from dotenv import load_dotenv
 import boto3
 
-from util.language_conversion import transliterate_aksharamukha
+from util.language_conversion import translate_text
 
 load_dotenv()
 
@@ -20,22 +20,22 @@ MODEL_ARN = os.getenv("MODEL_ARN")
 MESSAGES = {
     "unsupported_format": {
         "English": "Unsupported file format. Please upload a JPG or PNG image.",
-        "Devanagari": "असमर्थित फ़ाइल प्रारूप। कृपया JPG या PNG फोटो अपलोड करें।",
+        "Hindi": "असमर्थित फ़ाइल प्रारूप। कृपया JPG या PNG फोटो अपलोड करें।",
         "Gujarati": "અસમર્થિત ફાઇલ ફોર્મેટ. કૃપા કરીને JPG અથવા PNG છબી અપલોડ કરો."
     },
     "no_disease": {
         "English": "No disease detected. Please upload a clearer vegetable image.",
-        "Devanagari": "कोई बीमारी नहीं पाई गई। कृपया एक स्पष्ट सब्ज़ी की छवि अपलोड करें।",
+        "Hindi": "कोई बीमारी नहीं पाई गई। कृपया एक स्पष्ट सब्ज़ी की छवि अपलोड करें।",
         "Gujarati": "કોઈ રોગ મળ્યો નથી. કૃપા કરીને વધુ સ્પષ્ટ શાકભાજીની છબી અપલોડ કરો."
     },
     "success": {
         "English": "Disease(s) classified successfully",
-        "Devanagari": "बीमारी(यों) को सफलतापूर्वक वर्गीकृत किया गया",
+        "Hindi": "बीमारी(यों) को सफलतापूर्वक वर्गीकृत किया गया",
         "Gujarati": "રોગ(ઓ)ની સફળતાપૂર્વક વર્ગીકરણ થયું છે",
     },
     "invalid_image": {
         "English": "Invalid Image format",
-        "Devanagari": "अमान्य फोटो प्रारूप",
+        "Hindi": "अमान्य फोटो प्रारूप",
         "Gujarati": "અમાન્ય ફોટો ફોર્મેટ",
     }
 }
@@ -47,7 +47,7 @@ MESSAGES = {
 
 @app.post("/predict/{language}")
 async def predict_image(
-    language: str = Path(..., regex="^(English|Devanagari|Gujarati)$"),
+    language: str = Path(..., regex="^(English|Hindi|Gujarati)$"),
     file: UploadFile = File(...)
 ):
     try:
@@ -77,7 +77,7 @@ async def predict_image(
 
         valid_labels = [
             {
-                "label": transliterate_aksharamukha(label["Name"],language), 
+                "label": translate_text(label["Name"],language), 
                 "confidence": label["Confidence"]
             }
             for label in final_response

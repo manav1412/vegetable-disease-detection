@@ -1,15 +1,44 @@
-import requests
+from deep_translator import GoogleTranslator
 
-def transliterate_aksharamukha(text, target_script):
-    url = "https://aksharamukha.appspot.com/api/public"
-    params = {
-        "source": "ISO",       # ISO = English letters
-        "target": target_script,  # e.g., "Gujarati", "Devanagari"
-        "text": text
-    }
+def translate_text(text: str, target_language: str) -> str:
+    try:
+        if target_language == "English":
+            return text
+        elif target_language == "Gujarati":
+            if text == "Tomato Anthrocnose":
+                return "ટામેટા એન્થ્રેકનોઝ રોગ"
+            elif text == "Tomato Early blight ":
+                return "ટમેટામાં વહેલું ટપકું"
+            elif text == "Tomato-Powdery Mildew":
+                return "ટામેટામાં ભૂકીછારો"
+        else:
+            if text == "Tomato Anthrocnose":
+                return "टमाटर एन्थ्रेक्नोज"
+            elif text == "Tomato Early blight ":
+                return "टमाटर का शीघ्र झुलसा रोग"
+            elif text == "Tomato-Powdery Mildew":
+                return "पाउडरी मिल्ड्यू"
+    except Exception as e:
+        return f"Translation failed: {e}"
 
-    response = requests.get(url, params=params)
-    return response.text if response.ok else "Error"
+
+
+
+
+
+
+# import requests
+
+# def transliterate_aksharamukha(text, target_script):
+#     url = "https://aksharamukha.appspot.com/api/public"
+#     params = {
+#         "source": "ISO",       # ISO = English letters
+#         "target": target_script,  # e.g., "Gujarati", "Devanagari"
+#         "text": text
+#     }
+
+#     response = requests.get(url, params=params)
+#     return response.text if response.ok else "Error"
 
 # Examples:
 # print("Hindi (Devanagari):", transliterate_aksharamukha("Tomato-anthracnose", "English"))
