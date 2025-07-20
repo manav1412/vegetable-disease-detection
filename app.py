@@ -1,8 +1,10 @@
 import os
-from fastapi import FastAPI, File, UploadFile, Path
-from dotenv import load_dotenv
+import io
 import boto3
 
+from fastapi import FastAPI, File, UploadFile, Path
+from dotenv import load_dotenv
+from PIL import Image
 from util.language_conversion import translate_text
 
 load_dotenv()
@@ -34,15 +36,24 @@ MESSAGES = {
         "Gujarati": "રોગ(ઓ)ની સફળતાપૂર્વક વર્ગીકરણ થયું છે",
     },
     "invalid_image": {
-        "English": "Invalid Image format",
-        "Hindi": "अमान्य फोटो प्रारूप",
-        "Gujarati": "અમાન્ય ફોટો ફોર્મેટ",
+        "English": "Image size is too large or model is not running",
+        "Hindi": "फ़ोटो का आकार बहुत बड़ा है या मॉडल नहीं चल रहा है",
+        "Gujarati": "ફોટોનું કદ ખૂબ મોટું છે અથવા મોડેલ ચાલી રહ્યું નથી",
     }
 }
 
-# response = rekognition.describe_project_versions(ProjectArn="arn:aws:rekognition:ap-south-1:070290473916:project/vegetable-disease-detection/1752564867963")
-# for version in response['ProjectVersionDescriptions']:
-#     print(version['ProjectVersionArn'], version['Status'])
+def compress_image(raw_image_bytes):
+    image = Image.open(io.BytesIO(raw_image_bytes))
+
+    max_dimension = 4096
+    if image.width > max_dimension or image.height > max_dimension:
+        image.thumbnail((max_dimension, max_dimension))  # Keeps aspect ratio
+
+    buffer = io.BytesIO()
+    image.save(buffer, format='JPEG', quality=85)
+
+    print("Image dimension:", image.size)
+    return buffer.getvalue()
 
 
 @app.post("/predict/{language}")
@@ -57,8 +68,15 @@ async def predict_image(
                 "status": 415
             }
 
-        image_bytes = await file.read()
-        print("Received image of size:", len(image_bytes))
+        raw_image_bytes = await file.read()
+        image = Image.open(io.BytesIO(raw_image_bytes))
+        print("Received image of size:", len(raw_image_bytes))
+        print("Recieved image dimensions:", image.size)
+
+        if len(raw_image_bytes) > 4_000_000 or image.width > 4096 or image.height > 4096:
+            image_bytes = compress_image(raw_image_bytes)
+        else:
+            image_bytes = raw_image_bytes
 
         response = rekognition.detect_custom_labels(
             ProjectVersionArn=MODEL_ARN,
@@ -68,8 +86,9 @@ async def predict_image(
         print("response:", response)
 
         final_response = response.get("CustomLabels", [])
+        label = final_response[0]["Name"]
 
-        if not final_response:
+        if not final_response or label == "Irrelevant":
             return {
                 "message": MESSAGES["no_disease"][language],
                 "status": 404
@@ -92,65 +111,11 @@ async def predict_image(
     except Exception as e:
         print("Exception error:", str(e))
         return {
-            "message": MESSAGES["invalid_image"].get(language.lower(), "Invalid Image format"),
+            # "message": MESSAGES["invalid_image"].get(language.lower(), "Image size is too large or model is not running"),
+            "message": MESSAGES["invalid_image"].get(language, "Image size is too large or model is not running"),
             "status": 422
         }
 
-
-
-@app.post("/predict/")
-async def predict_image_without_lang(
-    file: UploadFile = File(...)
-):
-    try:
-        if not file.filename.lower().endswith((".jpg", ".jpeg", ".png")):
-            return {
-                "message": "Unsupported file format. Please upload a JPG or PNG image.",
-                "status": 415
-            }
-
-        image_bytes = await file.read()
-        print("Received image of size:", len(image_bytes))
-
-        response = rekognition.detect_custom_labels(
-            ProjectVersionArn=MODEL_ARN,
-            Image={'Bytes': image_bytes}
-        )
-
-        print("response:", response)
-
-        final_response = response.get("CustomLabels", [])
-
-        if not final_response:
-            return {
-                "message": "No disease detected. Please upload a clearer vegetable image.",
-                "status": 404
-            }
-
-        valid_labels = [
-            {
-                "label": label["Name"], 
-                "confidence": label["Confidence"]
-            }
-            for label in final_response
-        ]
-
-        return {
-            "message": "Disease(s) classified successfully",
-            "status": 200,
-            "data": valid_labels
-        }
-
-    except Exception as e:
-        print("Exception error:", str(e))
-        return {
-            "message": "Invalid Image format",
-            "status": 422
-        }
-    
-
-@app.get("/test")
-def test_api():
-    return {
-        "message":"Hello world"
-        }
+# response = rekognition.describe_project_versions(ProjectArn="arn:aws:rekognition:ap-south-1:070290473916:project/vegetable-disease-detection/1752564867963")
+# for version in response['ProjectVersionDescriptions']:
+#     print(version['ProjectVersionArn'], version['Status'])
