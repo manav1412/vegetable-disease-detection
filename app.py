@@ -36,9 +36,9 @@ MESSAGES = {
         "Gujarati": "રોગ(ઓ)ની સફળતાપૂર્વક વર્ગીકરણ થયું છે",
     },
     "invalid_image": {
-        "English": "Image size is too large or model is not running",
-        "Hindi": "फ़ोटो का आकार बहुत बड़ा है या मॉडल नहीं चल रहा है",
-        "Gujarati": "ફોટોનું કદ ખૂબ મોટું છે અથવા મોડેલ ચાલી રહ્યું નથી",
+        "English": "model is not running",
+        "Hindi": "मॉडल नहीं चल रहा है",
+        "Gujarati": "મોડેલ ચાલી રહ્યું નથી",
     }
 }
 
@@ -112,7 +112,7 @@ async def predict_image(
         print("Exception error:", str(e))
         return {
             # "message": MESSAGES["invalid_image"].get(language.lower(), "Image size is too large or model is not running"),
-            "message": MESSAGES["invalid_image"].get(language, "Image size is too large or model is not running"),
+            "message": MESSAGES["invalid_image"].get(language, "model is not running"),
             "status": 422
         }
 
